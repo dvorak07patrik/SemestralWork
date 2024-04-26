@@ -26,6 +26,9 @@ Formula Racing Manager is an advanced web-based platform designed to transform t
 - **Data Uploads**: Import your data for enhanced analysis and visualization.
 - **Comparative Analysis**: Execute side-by-side comparisons of races or driver performance metrics.
 
+### Data Integration and Utomation
+- **Automated Data Fetching**: Automatically collect data from various real-world Formula 1 sources to ensure the database is always updated with the latest race data, driver statistics, and team information. This feature supports real-time analytics and enhances strategic decision-making.
+
 ## Technical Specifications
 
 ### Web Application
@@ -37,6 +40,7 @@ Formula Racing Manager is an advanced web-based platform designed to transform t
 - **Data Integrity**: Implements strict data integrity checks and transactional controls to maintain accurate and consistent data across all user interactions.
 
 ### Integration and APIs
+- **Apache Airflow**: Integrates with Apache Airflow to automate the ingestion of data from multiple external sources, enhancing the richness and accuracy of the stored information.
 - **API Access**: Provides RESTful APIs for easy integration with other systems and third-party services, allowing for enhanced data sharing and functionality.
 
 ## Possible Features
