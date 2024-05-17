@@ -1,0 +1,106 @@
+fact_results
+---------------------
+resultId (PK)
+raceId (FK)
+driverId (FK)
+constructorId (FK)
+number
+grid
+position
+positionText
+positionOrder
+points
+timeOrRetired
+
+fact_driver_standings
+---------------------
+driverStandingsId (PK)
+raceId (FK)
+driverId (FK)
+points
+position
+positionText
+wins
+
+fact_constructor_standings
+---------------------
+constructorStandingsId (PK)
+raceId (FK)
+constructorId (FK)
+points
+position
+positionText
+wins
+
+fact_lap_times
+---------------------
+lapTimeId (PK)
+raceId (FK)
+driverId (FK)
+lap
+position
+time
+milliseconds
+
+fact_safety_cars
+---------------------
+safetyCarId (PK)
+raceId (FK)
+cause
+deployed
+retreated
+fullLaps
+type
+
+fact_red_flags
+---------------------
+redFlagId (PK)
+raceId (FK)
+lap
+resumed
+incident
+excluded
+
+dim_drivers
+---------------------
+driverId (PK)
+driverRef
+number
+code
+forename
+surname
+dob
+nationality
+url
+
+dim_constructors
+---------------------
+constructorId (PK)
+constructorRef
+name
+nationality
+url
+
+dim_races
+---------------------
+raceId (PK)
+year
+round
+circuitId (FK)
+name
+date
+time
+url
+
+dim_circuits
+---------------------
+circuitId (PK)
+circuitRef
+name
+location
+country
+lat
+lng
+alt
+url
+
