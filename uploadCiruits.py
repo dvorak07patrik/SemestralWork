@@ -55,5 +55,5 @@ def transform_and_load_to_db():
 		print(f"Processed and uploaded a chunk of {len(processed_df)} rows")
 
 if __name__ == "__main__":    
-	# Step 2: Transform and load data into PostgreSQL
+	# Transform and load data into PostgreSQL
 	transform_and_load_to_db()

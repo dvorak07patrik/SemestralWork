@@ -85,7 +85,7 @@ def transform_and_load_to_db():
 
 		# Convert the list of processed rows to a DataFrame
 		processed_df = pd.DataFrame(processed_rows)
-		# Drop the columns you want to exclude
+		# Drop the columns I want to exclude
 		processed_df = processed_df.drop(columns=columns_to_exclude)
 
 		if not processed_df.empty:
@@ -105,5 +105,5 @@ if __name__ == "__main__":
 	# Create SQLAlchemy engine
 	engine = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
 	print("Engine has been created")
-	# Step 2: Transform and load data into PostgreSQL
+	# Transform and load data into PostgreSQL
 	transform_and_load_to_db()
