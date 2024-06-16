@@ -22,7 +22,7 @@ def transform_and_load_to_db():
 
 	# Read and process data in chunks
 	chunk_size = 10000
-	for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+	for chunk in pd.read_csv(file_path, chunksize=chunk_size, dtype={'positionText': str}):
 		processed_rows = []
 		# print(chunk.iloc[0])
 		# Load data into database
@@ -30,7 +30,7 @@ def transform_and_load_to_db():
 		for index, row in chunk.iterrows():
 			# Perform your checks on each row
 			# Example check: ensure no missing values in critical columns
-			if pd.notnull(row['constructorStandingId']) and race_exists(row['raceId']) and constructor_exists(row['constructorId']):
+			if pd.notnull(row['constructorStandingsId']) and race_exists(row['raceId']) and constructor_exists(row['constructorId']):
 				
 				try:
 					row['position'] = int(row['position'])

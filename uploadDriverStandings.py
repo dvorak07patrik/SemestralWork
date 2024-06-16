@@ -24,16 +24,11 @@ def transform_and_load_to_db():
 
 	# Read and process data in chunks
 	chunk_size = 10000
-	for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+	for chunk in pd.read_csv(file_path, chunksize=chunk_size, dtype={'positionText': str}): # need to add dtype becouse of missinterpretation for second chunk as float for positionText
 		processed_rows = []
-		# print(chunk.iloc[0])
 		# Load data into database
-
 		for index, row in chunk.iterrows():
-			# Perform your checks on each row
-			# Example check: ensure no missing values in critical columns
 			if pd.notnull(row['driverStandingsId']) and race_exists(row['raceId']) and driver_exists(row['driverId']):
-				# Validate and possibly replace date and time fields
 				try:
 					row['points'] = int(row['points'])
 				except ValueError:
@@ -44,17 +39,16 @@ def transform_and_load_to_db():
 				except ValueError:
 					row['position'] = 0
 
+
 				try:
 					row['wins'] = int(row['wins'])
 				except ValueError:
 					row['wins'] = 0
 				
-
 				processed_rows.append(row)
 
 		# Convert the list of processed rows to a DataFrame
 		processed_df = pd.DataFrame(processed_rows)
-
 		if not processed_df.empty:
 			# Load the processed DataFrame into the database
 			processed_df.to_sql('fact_driver_standings', engine, if_exists='append', index=False)
@@ -72,5 +66,4 @@ if __name__ == "__main__":
 	# Create SQLAlchemy engine
 	engine = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
 	print("Engine has been created")
-	# Step 2: Transform and load data into PostgreSQL
 	transform_and_load_to_db()
