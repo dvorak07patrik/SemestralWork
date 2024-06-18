@@ -64,14 +64,14 @@ def transform_and_load_to_db():
             race_name, season = extract_season_and_race(row['Race'])
             raceId = find_race_id(season, race_name)
             if raceId is not None:
-                new_row = {
+                new_row = pd.Series({
                     'raceId': raceId,
                     'cause': row['Cause'],
                     'type': "S",
                     'deployed': int(row['Deployed']) if pd.notnull(row['Deployed']) else 0,
                     'retreated': int(row['Retreated']) if pd.notnull(row['Retreated']) else 0,
                     'fullLaps': int(row['FullLaps']) if pd.notnull(row['FullLaps']) else 0
-                }
+                })
                 if not entry_exists('fact_safety_cars', new_row):
                     processed_rows.append(new_row)
 
