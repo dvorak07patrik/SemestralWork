@@ -1,15 +1,102 @@
-version: '3.1'
+version: '3.8'
 
 services:
-  db:
-    image: postgres
-    restart: always
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
     environment:
-      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow_network
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - airflow_network
+
+  airflow-webserver:
+    build: .
+    image: apache/airflow:2.3.0
+    container_name: airflow-webserver
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: eJkYqKYU6SLrs39U3JBSWqBylDwWvW6f_A486u-e_Ls=
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./kaggle.json:/home/airflow/.kaggle/kaggle.json
+    ports:
+      - "8080:8080"
+    command: webserver
+    restart: always
+    networks:
+      - airflow_network
+
+  airflow-scheduler:
+    image: apache/airflow:2.3.0
+    container_name: airflow-scheduler
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: eJkYqKYU6SLrs39U3JBSWqBylDwWvW6f_A486u-e_Ls=
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./kaggle.json:/home/airflow/.kaggle/kaggle.json
+    command: scheduler
+    restart: always
+    networks:
+      - airflow_network
+
+  airflow-init:
+    image: apache/airflow:2.3.0
+    container_name: airflow-init
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: eJkYqKYU6SLrs39U3JBSWqBylDwWvW6f_A486u-e_Ls=
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./kaggle.json:/home/airflow/.kaggle/kaggle.json
+    entrypoint: ["bash", "-c", "sleep 10; airflow db init"]
+    networks:
+      - airflow_network
 
 volumes:
-  db_data:
+  postgres_data:
+
+networks:
+  airflow_network:
+    driver: bridge
