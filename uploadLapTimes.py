@@ -63,8 +63,8 @@ def transform_and_load_to_db():
 
 if __name__ == "__main__":    
 	# Database connection details
-	db_user = 'postgres'
-	db_password = 'mysecretpassword'
+	db_user = 'airflow'
+	db_password = 'airflow'
 	db_host = 'localhost'
 	db_port = '5432'
 	db_name = 'postgres'

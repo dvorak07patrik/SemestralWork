@@ -2,8 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, For
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 
 # Database connection parameters
-db_username = 'postgres'
-db_password = 'mysecretpassword'
+db_username = 'airflow'
+db_password = 'airflow'
 db_host = 'localhost'
 db_port = '5432'
 db_name = 'postgres'

@@ -28,15 +28,17 @@ def extract_season_and_race(race_input):
 def transform_and_load_to_db():
 	
 
-	file_path = 'data/safety_cars.csv'
+	file_path = 'data/red_flags.csv'
 
 	# Read and process data in chunks
 	chunk_size = 10000
-	for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+	for chunk in pd.read_csv(file_path, chunksize=chunk_size, dtype={'Excluded': str}):
+		chunk['Excluded'] = chunk['Excluded'].astype(str)
 		processed_rows = []
 		# Load data into database
-		new_row = {"raceId": 0, "cause": "", "deployed": 0, "retreated": "", "fullLaps": 0, "type": "S"}
+		new_row = {"raceId": 0, "lap": 0, "resumed": 0, "incident": "", "excluded": ""}
 		new_row = pd.Series(new_row)
+		
 		for index, row in chunk.iterrows():
 			#print(type(row))
 			# Perform checks on each row
@@ -44,25 +46,25 @@ def transform_and_load_to_db():
 			raceId = find_race_id(season, race_name)
 			if raceId is not None:
 				new_row['raceId'] = raceId
-				new_row['cause'] = row['Cause']
+				new_row['incident'] = row['Incident']
+				if len(new_row['incident']) > 255:
+					new_row['incident'] = new_row['incident'][0:255] # can be change later
+				new_row['excluded'] = row['Excluded']
+				if len(new_row['excluded']) > 255:
+					new_row['excluded'] = new_row['excluded'][0:255] # can be change later
 				
 				try:
-					new_row['deployed'] = int(row['Deployed'])
+					new_row['lap'] = int(row['Lap'])
 				except ValueError:
-					new_row['deployed'] = 0
+					new_row['lap'] = 0
 				
 				try:
-					new_row['retreated'] = int(row['Retreated'])
+					new_row['resumed'] = int(row['Resumed'])
 				except ValueError:
-					new_row['retreated'] = 0
-
-				try:
-					new_row['fullLaps'] = int(row['FullLaps'])
-				except ValueError:
-					new_row['fullLaps'] = 0
+					new_row['resumed'] = 0
 				
 				processed_rows.append(new_row)
-				new_row = {"raceId": 0, "cause": "", "deployed": 0, "retreated": "", "fullLaps": 0, "type": "S"}
+				new_row = {"raceId": 0, "lap": 0, "resumed": 0, "incident": "", "excluded": ""}
 				new_row = pd.Series(new_row)
 
 		# Convert the list of processed rows to a DataFrame
@@ -70,7 +72,7 @@ def transform_and_load_to_db():
 
 		if not processed_df.empty:
 			# Load the processed DataFrame into the database
-			processed_df.to_sql('fact_safety_cars', engine, if_exists='append', index=False)
+			processed_df.to_sql('fact_red_flags', engine, if_exists='append', index=False)
 
 		print(f"Processed and uploaded a chunk of {len(processed_df)} rows")
 

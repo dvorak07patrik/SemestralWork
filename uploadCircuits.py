@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from sqlalchemy import create_engine
 
@@ -14,10 +13,10 @@ def transform_and_load_to_db():
 	db_name = 'postgres'
 
 	# Create SQLAlchemy engine
-	engine = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
+	engine = create_engine(f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
 	print("Engine has been created")
 
-	file_path = 'data/drivers.csv'
+	file_path = 'data/circuits.csv'
 
 	# Read and process data in chunks
 	chunk_size = 10000
@@ -29,12 +28,20 @@ def transform_and_load_to_db():
 		for index, row in chunk.iterrows():
 			# Perform your checks on each row
 			# Example check: ensure no missing values in critical columns
-			if pd.notnull(row['driverId']) and pd.notnull(row['surname']):
+			if pd.notnull(row['circuitId']) and pd.notnull(row['name']):
 				try:
-					row['number'] = int(row['number'])
+					row['alt'] = int(row['alt'])
 				except ValueError:
-					row['number'] = 0
-
+					row['alt'] = 0
+				try:
+					row['lat'] = int(row['lat'])
+				except ValueError:
+					row['lat'] = 0
+				try:
+					row['lng'] = int(row['lng'])
+				except ValueError:
+					row['lng'] = 0
+				# You can also perform transformations here if needed
 				processed_rows.append(row)
 
 		# Convert the list of processed rows to a DataFrame
@@ -42,7 +49,7 @@ def transform_and_load_to_db():
 
 		if not processed_df.empty:
 			# Load the processed DataFrame into the database
-			processed_df.to_sql('dim_drivers', engine, if_exists='append', index=False)
+			processed_df.to_sql('dim_circuits', engine, if_exists='append', index=False)
 
 		print(f"Processed and uploaded a chunk of {len(processed_df)} rows")
 

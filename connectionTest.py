@@ -3,8 +3,8 @@ import psycopg2
 try:
     # Establish connection to PostgreSQL
     connection = psycopg2.connect(
-        user="postgres",
-        password="mysecretpassword",
+        user="airflow",
+        password="airflow",
         host="localhost",
         port="5432",
         database="postgres"
