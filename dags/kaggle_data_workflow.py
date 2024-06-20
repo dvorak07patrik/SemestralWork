@@ -21,13 +21,13 @@ engine = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port
 def download_kaggle_dataset(**kwargs):
     api = KaggleApi()
     api.authenticate()
-    api.dataset_download_files('rohanrao/formula-1-world-championship-1950-2020', path='/tmp/data', unzip=True)
+    api.dataset_download_files('jtrotman/formula-1-race-events', path='/tmp/data', unzip=True)
 
 # Function to check if new data is available on Kaggle
 def is_new_data_available(**kwargs):
     api = KaggleApi()
     api.authenticate()
-    dataset_metadata = api.dataset_view('rohanrao/formula-1-world-championship-1950-2020')
+    dataset_metadata = api.dataset_view('jtrotman/formula-1-race-events')
     last_update_time = dataset_metadata.lastUpdated.isoformat()
     
     ti = kwargs['ti']
@@ -110,7 +110,7 @@ def find_race_id(season, name):
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2023, 1, 1),
+    'start_date': datetime(2024, 6, 18),
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
