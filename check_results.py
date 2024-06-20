@@ -5,99 +5,83 @@ import datetime
 
 
 
+def compare_positions(original, first, second):
+	if original == 0:
+		original == "NC"
+	if first == second and first != original:
+		if first == "NC":
+			first = 0
+		return first
+	return None
+
+
+def compare_points(original, first, second):
+	if first == second and first != original:
+		return first
+	return None
+
+def find_driver(name):
+	first_name = name[0]
+	last_name = name[1]
+	with engine.connect() as connection:
+		for i in range(2, len(name)):
+			last_name += " " + name[i]
+		query = text(f'SELECT driverId FROM dim_drivers WHERE "forename" = {first_name} AND "surname" = {last_name}')
+		result = connection.execute(query).scalar()
+	return result
+
+
 def find_race(year, race_name):
 	with engine.connect() as connection:
-		query = text(f'SELECT raceId FROM dim_races WHERE "season" = {year} AND "" = {}')
-		result = connection.execute(query).scalar()
-	return result
-
-# Function to check if a value is a valid time
-def is_valid_time(time_str):
-    try:
-        datetime.datetime.strptime(time_str, '%H:%M:%S')
-        return True
-    except ValueError:
-        return False
-	
-# Function to check if raceId exists in dim_races table
-def race_exists(race_id):
-	with engine.connect() as connection:
-		query = text(f'SELECT EXISTS(SELECT 1 FROM dim_races WHERE "raceId" = {race_id})')
-		result = connection.execute(query).scalar()
-	return result
-
-def driver_exists(driver_id):
-	with engine.connect() as connection:
-		query = text(f'SELECT EXISTS(SELECT 1 FROM dim_drivers WHERE "driverId" = {driver_id})')
-		result = connection.execute(query).scalar()
-	return result
-
-def constructor_exists(constructor_id):
-	with engine.connect() as connection:
-		query = text(f'SELECT EXISTS(SELECT 1 FROM dim_constructors WHERE "constructorId" = {constructor_id})')
+		if (race_name[:4] != "Aust"):
+			query = text(f'SELECT raceId FROM dim_races WHERE "season" = {year} AND "name" LIKE "%" || {race_name[:4]} || "%"')
+		else:
+			if (race_name == "Australia"):
+				query = text(f'SELECT raceId FROM dim_races WHERE "season" = {year} AND "name" LIKE "%Australian%"')
+			else:
+				query = text(f'SELECT raceId FROM dim_races WHERE "season" = {year} AND "name" LIKE "%Austrian%"')
 		result = connection.execute(query).scalar()
 	return result
 
 # Function to transform and load data in chunks
 def transform_and_load_to_db():
-	
-
 	file_path = 'data/controlDataset1/race_details.csv'
-
-	# Define default values for invalid date and time
-	default_date = '0000-00-00'
-	default_time = '00:00:00'
+	table_name_base = '_race_results.csv'
+	separator = '-'
 	# Read and process data in chunks
 	chunk_size = 10000
 	for chunk in pd.read_csv(file_path, chunksize=chunk_size):
-		processed_rows = []
-		# print(chunk.iloc[0])
-		# Load data into database
-
 		for index, row in chunk.iterrows():
-			# Perform your checks on each row
-			# Example check: ensure no missing values in critical columns
-			if pd.notnull(row['resultId']) and race_exists(row['raceId']) and driver_exists(row['driverId']) and constructor_exists(row['constructorId']):
-				# Validate and possibly replace date and time fields
-				try:
-					row['number'] = int(row['number'])
-				except ValueError:
-					row['number'] = 0
-				
-				try:
-					row['grid'] = int(row['grid'])
-				except ValueError:
-					row['grid'] = 0
+			grand_prix_name = str(row['Grand Prix']).split()
+			sec_dataset_table_name = separator.join(grand_prix_name) + table_name_base
+			second_dataset_race_path = f'data/controlDataset2/{row['Year']}/Race Results/' + sec_dataset_table_name
 
-				try:
-					row['position'] = int(row['position'])
-				except ValueError:
-					row['position'] = 0
-				
-				try:
-					row['positionOrder'] = int(row['positionOrder'])
-				except ValueError:
-					row['positionOrder'] = 0
+			table = pd.read_csv(second_dataset_race_path)
+			for sec_table_row in table.iterrows():
+				if row['Driver'] == sec_table_row['Driver']:
+					race_id = find_race(row['Year'], row['Grand Prix'])
+					driver_id = find_driver(str(row['Driver']).split())
+					if race_id is not None and driver_id is not None:
+						with engine.connect() as connection:
+							query = text(f'SELECT * FROM fact_results WHERE "raceId" = {race_id} AND "driverId" = {driver_id}')
+							original_row = connection.execute(query).fetchone()
+						new_position = compare_positions(original_row['position'], row['Pos'], sec_table_row['Position'])
+						if new_position is not None:
+							with engine.connect() as connection:
+								query = text(f'UPDATE fact_results SET position = {new_position} WHERE "resultId" = {original_row['resultId']}')
+								connection.execute(query)
+								query = text(f'UPDATE fact_results SET positionText = {new_position} WHERE "resultId" = {original_row['resultId']}')
+								connection.execute(query)
+								query = text(f'UPDATE fact_results SET positionOrder = {new_position} WHERE "resultId" = {original_row['resultId']}')
+								connection.execute(query)
+						new_points = compare_points(original_row['points'], row['PTS'], sec_table_row['Points'])
+						if new_points is not None:
+							with engine.connect() as connection:
+								query = text(f'UPDATE fact_results SET points = {new_points} WHERE "resultId" = {original_row['resultId']}')
+								connection.execute(query)
 
-				try:
-					row['points'] = int(row['points'])
-				except ValueError:
-					row['points'] = 0
-				processed_rows.append(row)
+							
 
-		# Columns to exclude
-		columns_to_exclude = ['laps', 'milliseconds', 'fastestLap', 'rank', 'fastestLapTime', 'fastestLapSpeed', 'statusId']
-
-		# Convert the list of processed rows to a DataFrame
-		processed_df = pd.DataFrame(processed_rows)
-		# Drop the columns I want to exclude
-		processed_df = processed_df.drop(columns=columns_to_exclude)
-
-		if not processed_df.empty:
-			# Load the processed DataFrame into the database
-			processed_df.to_sql('fact_results', engine, if_exists='append', index=False)
-
-		print(f"Processed and uploaded a chunk of {len(processed_df)} rows")
 
 if __name__ == "__main__":    
 	# Database connection details
