@@ -71,6 +71,28 @@ services:
     networks:
       - airflow_network
 
+  airflow-worker:
+    image: apache/airflow:2.3.0
+    container_name: airflow-worker
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: eJkYqKYU6SLrs39U3JBSWqBylDwWvW6f_A486u-e_Ls=
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./kaggle.json:/home/airflow/.kaggle/kaggle.json
+    command: celery worker
+    restart: always
+    networks:
+      - airflow_network
+
   airflow-init:
     image: apache/airflow:2.3.0
     container_name: airflow-init
