@@ -1,0 +1,37 @@
+﻿@page "/fetchdata"
+@using Formula1ManagerWebApp.Data.Models
+@using Microsoft.EntityFrameworkCore
+@inject Data.ApplicationDbContext DbContext
+
+<h3>Data from PostgreSQL</h3>
+
+
+@if (data != null)
+{
+    <ul>
+        @foreach (var item in data)
+        {
+            <li>@item.forename @item.surname</li>
+        }
+    </ul>
+}
+else
+{
+    <p>Loading...</p>
+}
+
+@code {
+    private List<Driver> data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            data = await DbContext.Drivers.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
