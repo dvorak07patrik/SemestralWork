@@ -1,0 +1,42 @@
+﻿.scrollable-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+    .scrollable-list ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .scrollable-list li {
+        padding: 10px;
+        margin-bottom: 5px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        cursor: pointer;
+    }
+
+    .scrollable-list li.chosen {
+        padding: 10px;
+        margin-bottom: 5px;
+        background-color: springgreen;
+        border: 1px solid #ddd;
+        cursor: pointer;
+    }
+
+        .scrollable-list li:hover {
+            background-color: #f1f1f1;
+        }
+
+        .scrollable-list li.chosen:hover {
+            background-color: green;
+        }
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+}

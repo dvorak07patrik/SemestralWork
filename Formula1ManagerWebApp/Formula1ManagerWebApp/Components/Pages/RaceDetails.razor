@@ -1,0 +1,491 @@
+﻿@page "/race-details"
+@using Formula1ManagerWebApp.Data.Models
+@using Formula1ManagerWebApp.Data.DatabaseComm
+@using Microsoft.EntityFrameworkCore
+@inject Data.ApplicationDbContext DbContext
+@inject DatabaseCommunicationForStandings DatabaseCommunication
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<h1>Race details</h1>
+
+<div class="grid-container">
+    <div>
+        @if (seasons != null)
+        {
+            <div class="scrollable-list">
+                <ul>
+                    @foreach (var season in seasons)
+                    {
+                        if (chosenSeason != season)
+                        {
+                            <li @onclick="() => OnSeasonClick(season)">@season</li>
+                        }
+                        else
+                        {
+                            <li class="chosen" @onclick="() => OnSeasonClick(season)">@season</li>
+                        }
+
+                    }
+                </ul>
+            </div>
+        }
+        else
+        {
+            <p>Loading...</p>
+        }
+    </div>
+    <div>
+        @if (chosenSeason != 0 && racesReady)
+        {
+            <div class="scrollable-list">
+                <ul>
+                    @foreach (var race in races)
+                    {
+                        if (chosenRaceId != race.raceId)
+                        {
+                            <li @onclick="() => OnRaceClick(race.raceId)">@race.name - @race.date.ToString("MM/dd")</li>
+                        }
+                        else
+                        {
+                            <li class="chosen" @onclick="() => OnRaceClick(race.raceId)">@race.name - @race.date.ToString("MM/dd")</li>
+                        }
+
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+    <div>
+        @if (drivers != null && wholeSeasonChosen == true)
+        {
+            <div class="scrollable-list">
+                <ul>
+                    @if (chosenDriversIds == null || !chosenDriversIds.Any())
+                    {
+                        <li class="chosen">All drivers</li>
+                    }
+                    else
+                    {
+                        <li @onclick="() => OnAllDriversClick()">All drivers</li>
+                    }
+                    @for (int i = 0; i < drivers.Count; i++)
+                    {
+                        Driver driver = drivers[i];
+                        if (chosenDriversIds != null && chosenDriversIds.Contains(drivers[i].driverId))
+                        {
+                            <li class="chosen" @onclick="() => OnDriverClick(driver.driverId)">@driver.forename @driver.surname</li>
+                        }
+                        else
+                        {
+                            <li @onclick="() => OnDriverClick(driver.driverId)">@driver.forename @driver.surname</li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+    @if (chosenSeason != 0)
+    {
+        <button @onclick="OnWholeSeasonClick">Whole season compare</button>
+    }
+
+</div>
+
+
+
+@if (driverStandingsForRace != null && drivers != null && constructors != null)
+{
+
+    <h2>Driver Standings for Season @chosenSeason</h2>
+    <div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Forename</th>
+                    <th>Surname</th>
+                    <th>Points</th>
+                    <th>Team</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var driverStanding in driverStandingsForRace)
+                {
+                    Driver driver = drivers.First(d => d.driverId == driverStanding.driverId);
+
+                    try
+                    {
+                        int constructorId = results.Where(r => r.driverId == driver.driverId).Select(r => r.constructorId).First();
+                        Constructor constructor = constructors.Where(c => c.constructorId == constructorId).First();
+
+                        <tr>
+                            <td>@driverStanding.position</td>
+                            <td>@driver.forename</td>
+                            <td>@driver.surname</td>
+                            <td>@driverStanding.points</td>
+                            <td>@constructor.name</td>
+                        </tr>
+                    }
+                    catch
+                    {
+                        <tr>
+                            <td>@driverStanding.position</td>
+                            <td>@driver.forename</td>
+                            <td>@driver.surname</td>
+                            <td>@driverStanding.points</td>
+                            <td></td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Graphical Representation</h2>
+    <div style="height: 600px; width: 100%; position: relative;">
+        <canvas id="driverStandingsChart"></canvas>
+    </div>
+
+
+}
+
+@if (wholeSeasonChosen == true)
+{
+    <h3>Whole @chosenSeason season standings</h3>
+    <div style="height: 700px; width: 100%; position: relative;">
+        <canvas id="wholeSeasonChart"></canvas>
+    </div>
+}
+
+
+
+
+
+@code {
+    private List<Driver> drivers;
+    private List<int> seasons;
+    private List<Result> results;
+    private List<Race> races;
+    private List<Constructor> constructors;
+    private List<DriverStanding> driverStandingsForRace;
+    private List<List<DriverStanding>> driverStandingsForRaces;
+    private bool wholeSeasonChosen = false;
+    private int chosenSeason;
+    private int? chosenRaceId;
+    private bool racesReady = false;
+    private List<int>? chosenDriversIds;
+    public static readonly string[] PredefinedColors = new[]
+    {
+    "#FF6633", "#FFB399", "#FF33FF", "#FFFF99", "#00B3E6",
+    "#E6B333", "#3366E6", "#999966", "#99FF99", "#B34D4D",
+    "#80B300", "#809900", "#E6B3B3", "#6680B3", "#66991A",
+    "#FF99E6", "#CCFF1A", "#FF1A66", "#E6331A", "#33FFCC",
+    "#66994D", "#B366CC", "#4D8000", "#B33300", "#CC80CC"
+    };
+
+    [Parameter]
+    public int? getSeason { get; set; }
+    [Parameter]
+    public int? getRaceId { get; set; }
+    [Parameter]
+    public string? getDriverIds { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            seasons = await DbContext.Races.Select(r => r.season).Distinct().OrderByDescending(season => season).ToListAsync();
+            chosenDriversIds = new List<int>();
+            if (getSeason.HasValue)
+            {
+                if (getRaceId.HasValue)
+                {
+                    await OnSeasonClick(getSeason.Value);
+                    await OnRaceClick(getRaceId);
+                }
+                else if (!string.IsNullOrEmpty(getDriverIds))
+                {
+                    chosenDriversIds = getDriverIds.Split(',').Select(int.Parse).ToList();
+                    await OnSeasonClick(getSeason.Value);
+                    OnWholeSeasonClick();
+                }
+                else
+                {
+                    await OnSeasonClick(getSeason.Value);
+                }
+
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && chosenSeason != 0)
+        {
+            await LoadDriverStandingsChart();
+        }
+    }
+
+
+
+    private async Task DeleteRacesWithNoStandings()
+    {
+        List<Race> racesToRemove = new List<Race>();
+
+        foreach (var race in races)
+        {
+            var standingsForRace = await DatabaseCommunication.GetDriverStandingsForRace(race.raceId);
+
+            if (standingsForRace.Count == 0)
+            {
+                racesToRemove.Add(race);
+            }
+        }
+
+        foreach (var raceToRemove in racesToRemove)
+        {
+            races.Remove(raceToRemove);
+        }
+
+        racesReady = true;
+        StateHasChanged();
+    }
+
+    private async void OnAllDriversClick()
+    {
+        chosenDriversIds.Clear();
+        UpdateUrl();
+        OnWholeSeasonClick();
+    }
+
+    private async Task OnSeasonClick(int season)
+    {
+
+        try
+        {
+            Console.WriteLine($"Season clicked: {season}");
+            if (chosenSeason == 0 || chosenSeason != season)
+            {
+                racesReady = false;
+                races = await DatabaseCommunication.GetRacesForSeason(season);
+
+                // to not listing races we don't have standings for
+                await DeleteRacesWithNoStandings();
+
+                chosenSeason = season;
+                getSeason = season;
+                driverStandingsForRace = null;
+                wholeSeasonChosen = false;
+                chosenRaceId = 0;
+                drivers = null;
+                //chosenDriversIds = new List<int>();
+                StateHasChanged();
+
+                // Update the URL without reloading the page
+                await UpdateUrl();
+            }
+
+            Console.WriteLine($"Races count: {races.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+    }
+
+    private async Task UpdateUrl()
+    {
+        if (chosenSeason != null && chosenSeason != 0)
+        {
+            if (chosenRaceId != null && chosenRaceId != 0)
+            {
+                await JS.InvokeVoidAsync("updateUrl", $"/driver-standings/{chosenSeason}/race-{chosenRaceId}");
+            }
+            else if (chosenDriversIds != null && chosenDriversIds.Any())
+            {
+                string driverIdsString = "drivers-" + string.Join(",", chosenDriversIds);
+                await JS.InvokeVoidAsync("updateUrl", $"/driver-standings/{chosenSeason}/{driverIdsString}");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("updateUrl", $"/driver-standings/{chosenSeason}");
+            }
+        }
+    }
+
+
+
+    private async Task OnRaceClick(int? raceId)
+    {
+        wholeSeasonChosen = false;
+        chosenRaceId = raceId;
+
+        try
+        {
+            Console.WriteLine($"RaceId: {raceId}");
+
+            driverStandingsForRace = await DatabaseCommunication.GetDriverStandingsForRace(raceId);
+
+            results = await DatabaseCommunication.GetResultsForRace(raceId);
+
+            drivers = await DatabaseCommunication.GetDriversForRace(driverStandingsForRace);
+
+            constructors = await DatabaseCommunication.GetConstructorsForRaceFromResults(results);
+
+            // Update the URL without reloading the page
+            await UpdateUrl();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            // if there is a problem with showing the graph for the first time - uncomment and add small delay
+            //await Task.Delay(100);
+            await LoadDriverStandingsChart();
+        }
+    }
+
+    private async Task OnDriverClick(int driverId)
+    {
+        if (chosenDriversIds != null && chosenDriversIds.Contains(driverId))
+        {
+            chosenDriversIds.Remove(driverId);
+        }
+        else
+        {
+            chosenDriversIds.Add(driverId);
+        }
+        await UpdateUrl();
+        await LoadWholeSeasonStandingChart();
+
+
+    }
+
+    private async Task<List<Driver>> getDriversForWholeSeason(int season)
+    {
+        int lastRaceOfTheSeasonId = races[races.Count - 1].raceId;
+        var driverStandingsForLastRace = await DatabaseCommunication.GetDriverStandingsForRace(lastRaceOfTheSeasonId);
+        var driversToReturn = await DatabaseCommunication.GetDriversForRace(driverStandingsForLastRace);
+        return driversToReturn;
+    }
+
+
+    private async void OnWholeSeasonClick()
+    {
+        wholeSeasonChosen = true;
+        driverStandingsForRace = null;
+        chosenRaceId = 0;
+        try
+        {
+            races = await DatabaseCommunication.GetRacesForSeason(chosenSeason);
+
+            List<Race> racesToRemove = new List<Race>();
+            driverStandingsForRaces = new List<List<DriverStanding>>();
+
+
+            foreach (var race in races)
+            {
+                var standingsForRace = await DatabaseCommunication.GetDriverStandingsForRace(race.raceId);
+                if (standingsForRace.Count == 0)
+                {
+                    racesToRemove.Add(race);
+                }
+                else
+                {
+                    driverStandingsForRaces.Add(standingsForRace);
+                }
+            }
+
+            foreach (var raceToRemove in racesToRemove)
+            {
+                races.Remove(raceToRemove);
+            }
+
+            drivers = await getDriversForWholeSeason(chosenSeason);
+            wholeSeasonChosen = true;
+
+            StateHasChanged();
+
+            await LoadWholeSeasonStandingChart();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+    }
+
+
+
+    private async Task LoadDriverStandingsChart()
+    {
+        var driverNames = driverStandingsForRace.Select(ds => drivers.First(d => d.driverId == ds.driverId).forename + " " + drivers.First(d => d.driverId == ds.driverId).surname).ToArray();
+        var driverPoints = driverStandingsForRace.Select(ds => ds.points).ToArray();
+
+        await JS.InvokeVoidAsync("loadDriverStandingsChart", driverNames, driverPoints);
+    }
+
+
+    private async Task LoadWholeSeasonStandingChart()
+    {
+        string[]? raceNames = races.Select(r => r.name).ToArray();
+
+
+        List<int>? driverIds;
+        if (chosenDriversIds == null || !chosenDriversIds.Any())
+        {
+            //get driver Ids for whole season
+            driverIds = drivers.Select(d => d.driverId).ToList();
+        }
+        else
+        {
+            driverIds = chosenDriversIds;
+        }
+
+        var driversToShow = drivers.Where(d => driverIds.Contains(d.driverId)).ToList();
+        float[][] pointsForRaces = GetPointsForRaces(driversToShow);
+
+        var driverNames = driversToShow.Select(d => d.forename + " " + d.surname).ToArray();
+        await JS.InvokeVoidAsync("loadWholeSeasonChart", raceNames, driverNames, pointsForRaces);
+    }
+
+
+    private float[][] GetPointsForRaces(List<Driver> driversToShow)
+    {
+        float[][] pointsForRaces = new float[races.Count][];
+        for (int i = 0; i < races.Count; i++)
+        {
+            int j = 0;
+            pointsForRaces[i] = new float[driversToShow.Count];
+            foreach (var driver in driversToShow)
+            {
+                try
+                {
+                    pointsForRaces[i][j] = driverStandingsForRaces[i].Where(ds => ds.driverId == driver.driverId).Select(ds => ds.points).First();
+                    j++;
+                }
+                catch
+                {
+                    pointsForRaces[i][j] = 0;
+                    j++;
+                }
+
+            }
+        }
+        return pointsForRaces;
+    }
+
+
+
+}
