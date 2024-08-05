@@ -19,13 +19,13 @@ namespace Formula1ManagerWebApp.Data.Models
         public float points { get; set; }
         public string timeOrRetired { get; set; }
 
-        [ForeignKey("RaceId")]
+        [ForeignKey("raceId")]
         public Race race { get; set; }
 
-        [ForeignKey("DriverId")]
+        [ForeignKey("driverId")]
         public Driver driver { get; set; }
 
-        [ForeignKey("ConstructorId")]
+        [ForeignKey("constructorId")]
         public Constructor constructor { get; set; }
     }
 

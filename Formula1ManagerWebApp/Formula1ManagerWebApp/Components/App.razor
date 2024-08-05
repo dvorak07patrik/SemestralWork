@@ -8,12 +8,20 @@
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="Formula1ManagerWebApp.styles.css" />
+    <link rel="stylesheet" href="css/site.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
+    <script src="js/site.js"></script>
     <HeadOutlet />
 </head>
 
 <body>
     <Routes />
+    <app>
+        <component type="typeof(App)" render-mode="InteractiveServer" />
+    </app>
     <script src="_framework/blazor.web.js"></script>
 </body>
 
