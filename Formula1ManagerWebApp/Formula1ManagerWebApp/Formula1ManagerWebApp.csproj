@@ -15,4 +15,17 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Components\Pages\ConstructorStandings.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Components\Pages\ConstructorStandings.razor" />
+    <_ContentIncludedByDefault Remove="Components\Pages\FutureUserLinksTest.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Components\Pages\FutureUserLinksTest.razor" />
+  </ItemGroup>
+
 </Project>
