@@ -15,10 +15,10 @@ namespace Formula1ManagerWebApp.Data.Models
         public string time { get; set; }
         public int milliseconds { get; set; }
 
-        [ForeignKey("RaceId")]
+        [ForeignKey("raceId")]
         public Race race { get; set; }
 
-        [ForeignKey("DriverId")]
+        [ForeignKey("driverId")]
         public Driver driver { get; set; }
     }
 }

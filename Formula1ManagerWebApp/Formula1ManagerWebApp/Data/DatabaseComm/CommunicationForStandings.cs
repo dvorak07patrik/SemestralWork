@@ -15,6 +15,24 @@ namespace Formula1ManagerWebApp.Data.DatabaseComm
             _dbContext = dbContext;
         }
 
+        public async Task<List<LapTime>> GetDriverLapTimes(int driverId, int? raceId)
+        {
+            List<LapTime> driverLapTimes = await _dbContext.LapTimes
+                .Where(lt => lt.driverId == driverId && lt.raceId == raceId)
+                .OrderBy(lt => lt.lap)
+                .ToListAsync();
+            return driverLapTimes;
+        }
+        
+        public async Task<List<int>> GetAllSeasons()
+        {
+            List<int> seasonsToReturn = await _dbContext.Races
+                .Select(r => r.season)
+                .Distinct()
+                .OrderByDescending(season => season)
+                .ToListAsync();
+            return seasonsToReturn;
+        }
 
         public async Task<List<Race>> GetRacesForSeason(int season)
         {
@@ -114,12 +132,30 @@ namespace Formula1ManagerWebApp.Data.DatabaseComm
             return constructorsToReturn;
         }
 
+        public async Task<List<Driver>> GetDriversForResult(List<Result> results)
+        {
+            List<int> driverIds = results
+                .Select(r => r.driverId)
+                .Distinct()
+                .ToList();
+            var driversToReturn = await GetDriversByIds(driverIds);
+            return driversToReturn;
+        }
+
         public async Task<Driver> GetDriver(int driverId)
         {
             Driver driverToReturn = await _dbContext.Drivers
                 .Where(d => d.driverId == driverId)
                 .FirstAsync();
             return driverToReturn;
+        }
+
+        public async Task<Race> GetRace(int? raceId)
+        {
+            Race raceToReturn = await _dbContext.Races
+                .Where(r => r.raceId == raceId)
+                .FirstAsync();
+            return raceToReturn;
         }
     }
     
