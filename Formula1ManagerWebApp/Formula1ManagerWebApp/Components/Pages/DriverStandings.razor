@@ -13,10 +13,12 @@
 
 <h1>Driver standings</h1>
 
+<!-- Grid container for season, race, and driver selection -->
 <div class="grid-container">
     <div>
         @if (seasons != null)
         {
+            <!-- Display seasons list -->
             <div class="scrollable-list">
                 <ul>
                     @foreach (var season in seasons)
@@ -40,6 +42,7 @@
         }
     </div>
     <div>
+        <!-- Display races list for selected season -->
         @if (chosenSeason != 0 && racesReady)
         {
             <div class="scrollable-list">
@@ -61,6 +64,7 @@
         }
     </div>
     <div>
+        <!-- Display drivers list for selected race or whole season -->
         @if (drivers != null && wholeSeasonChosen == true)
         {
             <div class="scrollable-list">
@@ -97,7 +101,7 @@
 </div>
 
 
-
+<!-- Display driver standings for the selected race -->
 @if (driverStandingsForRace != null && drivers != null && constructors != null)
 {
 
@@ -154,6 +158,7 @@
     
 }
 
+<!-- Display whole season standings chart -->
 @if (wholeSeasonChosen == true)
 {
     <h3>Whole @chosenSeason season standings</h3>
@@ -179,15 +184,6 @@
     private int? chosenRaceId;
     private bool racesReady = false;
     private List<int>? chosenDriversIds;
-    public static readonly string[] PredefinedColors = new[]
-    {
-    "#FF6633", "#FFB399", "#FF33FF", "#FFFF99", "#00B3E6",
-    "#E6B333", "#3366E6", "#999966", "#99FF99", "#B34D4D",
-    "#80B300", "#809900", "#E6B3B3", "#6680B3", "#66991A",
-    "#FF99E6", "#CCFF1A", "#FF1A66", "#E6331A", "#33FFCC",
-    "#66994D", "#B366CC", "#4D8000", "#B33300", "#CC80CC"
-    };
-
     [Parameter]
     public int? getSeason { get; set; }
     [Parameter]
@@ -199,8 +195,11 @@
     {
         try
         {
-            seasons = await DbContext.Races.Select(r => r.season).Distinct().OrderByDescending(season => season).ToListAsync();
+            // Load all seasons
+            seasons = await DatabaseCommunication.GetAllSeasons();
             chosenDriversIds = new List<int>();
+
+            // Handle URL parameters
             if (getSeason.HasValue)
             {
                 if (getRaceId.HasValue)
@@ -236,7 +235,7 @@
     }
 
 
-
+    // Delete races with no standings
     private async Task DeleteRacesWithNoStandings()
     {
         List<Race> racesToRemove = new List<Race>();
@@ -260,6 +259,7 @@
         StateHasChanged();
     }
 
+    // Handle click for all drivers
     private async void OnAllDriversClick()
     {
         chosenDriversIds.Clear();
@@ -267,6 +267,7 @@
         OnWholeSeasonClick();
     }
 
+    // Handle season click
     private async Task OnSeasonClick(int season)
     {
 
@@ -278,7 +279,7 @@
                 racesReady = false;
                 races = await DatabaseCommunication.GetRacesForSeason(season);
 
-                // to not listing races we don't have standings for
+                // To not listing races we don't have standings for
                 await DeleteRacesWithNoStandings();
 
                 chosenSeason = season;
@@ -286,8 +287,6 @@
                 driverStandingsForRace = null;
                 wholeSeasonChosen = false;
                 chosenRaceId = 0;
-                drivers = null;
-                //chosenDriversIds = new List<int>();
                 StateHasChanged();
 
                 // Update the URL without reloading the page
@@ -303,6 +302,7 @@
 
     }
 
+    // Update URL based on selected parameters
     private async Task UpdateUrl()
     {
         if (chosenSeason != null && chosenSeason != 0)
@@ -324,7 +324,7 @@
     }
 
 
-
+    // Handle race click
     private async Task OnRaceClick(int? raceId)
     {
         wholeSeasonChosen = false;
@@ -355,10 +355,13 @@
             StateHasChanged();
             // if there is a problem with showing the graph for the first time - uncomment and add small delay
             //await Task.Delay(100); 
+
+            // Load driver standings chart
             await LoadDriverStandingsChart();
         }
     }
 
+    // Handle driver click
     private async Task OnDriverClick(int driverId)
     {
         if (chosenDriversIds != null && chosenDriversIds.Contains(driverId))
@@ -375,6 +378,7 @@
 
     }
 
+    // Get drivers for the whole season
     private async Task<List<Driver>> getDriversForWholeSeason(int season)
     {
         int lastRaceOfTheSeasonId = races[races.Count - 1].raceId;
@@ -383,7 +387,7 @@
         return driversToReturn;
     }
 
-
+    // Handle whole season click
     private async void OnWholeSeasonClick()
     {
         wholeSeasonChosen = true;
@@ -391,6 +395,7 @@
         chosenRaceId = 0;
         try
         {
+            // Get races and driver standings for the whole season
             races = await DatabaseCommunication.GetRacesForSeason(chosenSeason);
 
             List<Race> racesToRemove = new List<Race>();
@@ -430,7 +435,7 @@
     }
 
 
-
+    // Load driver standings chart
     private async Task LoadDriverStandingsChart()
     {
         var driverNames = driverStandingsForRace.Select(ds => drivers.First(d => d.driverId == ds.driverId).forename + " " + drivers.First(d => d.driverId == ds.driverId).surname).ToArray();
@@ -439,7 +444,7 @@
         await JS.InvokeVoidAsync("loadDriverStandingsChart", driverNames, driverPoints);
     }
 
-
+    // Load whole season standing chart
     private async Task LoadWholeSeasonStandingChart()
     {
         string[]? raceNames = races.Select(r => r.name).ToArray();
@@ -448,7 +453,7 @@
         List<int>? driverIds;
         if (chosenDriversIds == null || !chosenDriversIds.Any())
         {
-            //get driver Ids for whole season
+            // Get driver Ids for whole season
             driverIds = drivers.Select(d => d.driverId).ToList();
         }
         else
@@ -463,7 +468,7 @@
         await JS.InvokeVoidAsync("loadWholeSeasonChart", raceNames, driverNames, pointsForRaces);
     }
 
-
+    // Get points for all races for the selected drivers
     private float[][] GetPointsForRaces(List<Driver> driversToShow)
     {
         float[][] pointsForRaces = new float[races.Count][];
