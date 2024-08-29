@@ -79,7 +79,8 @@ window.loadWholeSeasonChart = (raceNames, driverNames, pointsForRaces) => {
             maintainAspectRatio: false,
             scales: {
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    type: 'log2'
                 }
             },
             plugins: {
@@ -99,6 +100,109 @@ window.loadWholeSeasonChart = (raceNames, driverNames, pointsForRaces) => {
     });
 }
 
+window.loadWholeSeasonResultsChart = (raceNames, driverNames, pointsForRaces) => {
+    var ctx = document.getElementById('wholeSeasonChart').getContext('2d');
+
+    // Check if there is an existing chart instance and destroy it
+    if (window.chartInstances['wholeSeasonChart']) {
+        window.chartInstances['wholeSeasonChart'].destroy();
+    }
+
+    // Prepare the datasets
+    var datasets = driverNames.map((driverName, index) => {
+        return {
+            label: driverName,
+            data: pointsForRaces.map(row => row[index]),
+            fill: false,
+            borderColor: predefinedColors[index % predefinedColors.length],
+            tension: 0
+        };
+    });
+
+    // Create a new chart instance
+    window.chartInstances['wholeSeasonChart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: raceNames,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    type: 'linear'
+                }
+            },
+            plugins: {
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    },
+                    zoom: {
+                        enabled: true,
+                        mode: 'x',
+                    }
+                }
+            }
+        }
+
+    });
+}
+
+window.loadLapTimesChart = (driverNames, lapTimesForDrivers, laps) => {
+    var ctx = document.getElementById('lapTimesChart').getContext('2d');
+
+    // Check if there is an existing chart instance and destroy it
+    if (window.chartInstances['lapTimesChart']) {
+        window.chartInstances['lapTimesChart'].destroy();
+    }
+
+    // Prepare the datasets
+    var datasets = driverNames.map((driverName, index) => {
+        // Sample data if necessary
+        return {
+            label: driverName,
+            data: lapTimesForDrivers[index],
+            fill: false,
+            borderColor: predefinedColors[index % predefinedColors.length],
+            tension: 0.1
+        };
+    });
+
+    // Create a new chart instance
+    window.chartInstances['lapTimesChart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: laps,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {  
+                y: {
+                    beginAtZero: true,
+                    type: 'log2',
+                }
+            },
+            plugins: {
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    zoom: {
+                        enabled: true,
+                        mode: 'x',
+                    }
+                }
+            }
+        }
+    });
+};
 
 
 
